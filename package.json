@@ -1,0 +1,34 @@
+{
+  "name": "html-export",
+  "version": "1.0.0",
+  "description": "html导出为图片",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tfcx-th/html-export.git"
+  },
+  "keywords": [
+    "html",
+    "export",
+    "png"
+  ],
+  "author": "tfcx",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tfcx-th/html-export/issues"
+  },
+  "homepage": "https://github.com/tfcx-th/html-export#readme",
+  "dependencies": {
+    "html2canvas": "^1.0.0-rc.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.8.6",
+    "@babel/preset-env": "^7.8.6",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-resolve": "^5.2.0"
+  }
+}
