@@ -1,4 +1,4 @@
-var Exporter = (function () {
+var htmlExport = (function () {
   'use strict';
 
   function _classCallCheck(instance, Constructor) {
@@ -21,6 +21,108 @@ var Exporter = (function () {
     if (protoProps) _defineProperties(Constructor.prototype, protoProps);
     if (staticProps) _defineProperties(Constructor, staticProps);
     return Constructor;
+  }
+
+  /**
+   * 仿照 Koa 洋葱圈模型，使用中间件抽象各个流程
+   * 中间件为对象形式，包含一个 before 方法和 一个 after 方法
+   */
+  var Onion = /*#__PURE__*/function () {
+    function Onion() {
+      _classCallCheck(this, Onion);
+
+      this.mwList = [];
+    }
+
+    _createClass(Onion, [{
+      key: "use",
+      value: function use(mw) {
+        if (Object.prototype.toString.call(mw) !== '[object Object]') {
+          throw new TypeError('Middleware must be a Object');
+        }
+
+        this.mwList.push(mw);
+        return this;
+      }
+    }, {
+      key: "start",
+      value: function start() {
+        return this._compose(this.mwList);
+      }
+    }, {
+      key: "_compose",
+      value: function _compose() {
+        var mwlist = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+
+        function dispatch(i) {
+          if (i > mwlist.length - 1) return;
+          var mw = mwlist[i];
+
+          try {
+            mw.before();
+            return Promise.resolve(dispatch(i + 1)).then(function () {
+              mw.after();
+            });
+          } catch (err) {
+            return Promise.reject(err);
+          }
+        }
+
+        dispatch(0);
+      }
+    }]);
+
+    return Onion;
+  }();
+
+  function handleHeight(exportEle) {
+    var ele = document.querySelector(exportEle);
+    var eleHeight = window.getComputedStyle(ele).getPropertyValue('height');
+    return {
+      before: function before() {
+        ele.style.height = 'auto';
+      },
+      after: function after() {
+        ele.style.height = eleHeight;
+      }
+    };
+  }
+
+  function handleScroll(scrollEle) {
+    var ele = document.querySelector(scrollEle);
+    var eleOverflow = window.getComputedStyle(ele).getPropertyValue('overflow');
+    return {
+      before: function before() {
+        ele.style.overflow = 'visible';
+      },
+      after: function after() {
+        ele.style.overflow = eleOverflow;
+      }
+    };
+  }
+
+  function handleIgnore(ignoreEle) {
+    var displayMap = new Map();
+    ignoreEle.forEach(function (ele) {
+      var dom = document.querySelector(ele);
+      var display = window.getComputedStyle(dom).getPropertyValue('display');
+      displayMap.set(ele, display);
+    });
+    return {
+      before: function before() {
+        ignoreEle.forEach(function (ele) {
+          var dom = document.querySelector(ele);
+          dom.style.display = 'none';
+        });
+      },
+      after: function after() {
+        ignoreEle.forEach(function (ele) {
+          var dom = document.querySelector(ele);
+          dom.style.display = displayMap.get(ele);
+        });
+        displayMap = null;
+      }
+    };
   }
 
   var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -7063,101 +7165,45 @@ var Exporter = (function () {
 
   });
 
-  var Exporter = /*#__PURE__*/function () {
-    function Exporter() {
-      var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'export';
-      var exportElement = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'body';
-      var scrollElement = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
-      var ignoreElement = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+  function download(name, url) {
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name;
+    var event;
 
-      _classCallCheck(this, Exporter);
-
-      this.name = name;
-      this.exportElement = exportElement;
-      this.scrollElement = scrollElement;
-      this.ignoreElement = ignoreElement;
-      this.displayMap = new Map();
+    if (window.MouseEvent) {
+      event = new MouseEvent('click');
+    } else {
+      event = document.createEvent('MouseEvents');
+      event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
     }
 
-    _createClass(Exporter, [{
-      key: "exportImg",
-      value: function exportImg() {
-        var _this = this;
+    link.dispatchEvent(event);
+  }
 
-        this._getDisplayMap(this.ignoreElement);
-
-        this._toImg().then(function (url) {
-          _this._download(_this.name, url);
-        });
-      }
-    }, {
-      key: "_download",
-      value: function _download(name, url) {
-        var link = document.createElement('a');
-        link.href = url;
-        link.download = name;
-        var event;
-
-        if (window.MouseEvent) {
-          event = new MouseEvent('click');
-        } else {
-          event = document.createEvent('MouseEvents');
-          event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-        }
-
-        link.dispatchEvent(event);
-      }
-    }, {
-      key: "_toImg",
-      value: function _toImg() {
-        var _this2 = this;
-
-        var app = document.querySelector('#app');
-        var appHeight = window.getComputedStyle(app).getPropertyValue('height'); // 取消滚动元素的滚动
-
-        var scrollEle = document.querySelector(this.scrollElement).parentNode;
-        var scrollEleOverflow = window.getComputedStyle(scrollEle).getPropertyValue('overflow');
-        app.style.height = 'auto';
-        scrollEle.style.overflow = 'visible';
-        this.ignoreElement.forEach(function (ele) {
-          var dom = document.querySelector(ele);
-          dom.style.display = 'none';
-        });
-        return html2canvas(document.querySelector(this.exportElement), {
-          allowTaint: true,
-          backgroundColor: '#f4f4f4'
-        }).then(function (canvas) {
-          app.style.height = appHeight;
-          scrollEle.style.overflow = scrollEleOverflow;
-
-          _this2.ignoreElement.forEach(function (ele) {
-            var dom = document.querySelector(ele);
-            dom.style.display = _this2.displayMap.get(ele);
-          });
-
-          _this2.displayMap = new Map();
+  function handleExport(name, exportEle) {
+    var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+    return {
+      before: function before() {
+        html2canvas(document.querySelector(exportEle), options).then(function (canvas) {
           return canvas.toDataURL('image/png', 1);
+        }).then(function (url) {
+          download(name, url);
         });
-      } // 记录被忽略的元素的display值，以便后续复原
+      },
+      after: function after() {}
+    };
+  }
 
-    }, {
-      key: "_getDisplayMap",
-      value: function _getDisplayMap() {
-        var _this3 = this;
+  function htmlExport() {
+    var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'export';
+    var exportEle = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '#app';
+    var scrollEle = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '';
+    var ignoreEle = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+    var exporter = new Onion();
+    exporter.use(handleHeight(exportEle)).use(handleScroll(scrollEle)).use(handleIgnore(ignoreEle)).use(handleExport(name, exportEle)).start();
+  }
 
-        var ignoreElement = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
-        ignoreElement.forEach(function (ele) {
-          var dom = document.querySelector(ele);
-          var display = window.getComputedStyle(dom).getPropertyValue('display');
-
-          _this3.displayMap.set(ele, display);
-        });
-      }
-    }]);
-
-    return Exporter;
-  }();
-
-  return Exporter;
+  return htmlExport;
 
 }());
