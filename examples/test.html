@@ -11,13 +11,6 @@
         <div class="top">
             <button id="btn">导出</button>
         </div>
-        <script src="../html-export.js"></script>
-        <script>
-            var exporter = new Exporter('export', 'body', '.right', ['.left'])
-            document.querySelector('#btn').addEventListener('click', () => {
-                exporter.exportImg()
-            })
-        </script>
         <div class="main">
             <div class="left">
                 <ul>
@@ -132,6 +125,14 @@
             </div>
         </div>
     </div>
+      <script src="../html-export.js"></script>
+        <script>
+            let fn = function() {
+                return htmlExport('export', '#app', '.right', ['.left'])
+            }
+            const btn = document.querySelector('#btn')
+            btn.addEventListener('click', fn)
+        </script>
 </body>
 <style>
     * {

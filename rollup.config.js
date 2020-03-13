@@ -3,10 +3,10 @@ import commonjs from 'rollup-plugin-commonjs'
 import babel from 'rollup-plugin-babel'
 
 export default {
-    input: 'src/index.js',
+    input: 'index.js',
     output: {
         file: 'html-export.js',
-        name: 'Exporter',
+        name: 'htmlExport',
         format: 'iife'
     },
     watch: {
